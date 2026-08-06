@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import html
-import json
 import logging
 import re
 import time
@@ -11,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 import requests
+
+from core.utils import read_json, write_json
 
 from core.config import Settings
 
@@ -136,16 +137,29 @@ def _extract_authors(item: dict) -> list[str]:
 
 
 def _extract_categories(item: dict) -> list[str]:
-    """Extract unique, ordered list of categories from subject field."""
-    subject = item.get("subject")
-    if not isinstance(subject, list):
-        return []
+    """Extract categories with fallback: subject -> container-title -> group-title -> type.
+
+    Crossref no longer provides `subject` for most records, so we fall back to
+    container-title (journal name), group-title, and document type to ensure
+    every record has at least one category for question generation.
+    """
+    candidates: list[str] = []
+    for s in (item.get("subject") or []):
+        candidates.append(str(s))
+    container = item.get("container-title") or []
+    if isinstance(container, list) and container:
+        candidates.append(str(container[0]))
+    if item.get("group-title"):
+        candidates.append(str(item["group-title"]))
+    if item.get("type"):
+        candidates.append(str(item["type"]).replace("-", " ").title())
+
     seen: set[str] = set()
     result: list[str] = []
-    for s in subject:
-        cat = str(s).strip()
-        if cat and cat not in seen:
-            seen.add(cat)
+    for cat in candidates:
+        cat = cat.strip()
+        if cat and cat.lower() not in seen:
+            seen.add(cat.lower())
             result.append(cat)
     return result
 
@@ -172,17 +186,14 @@ def _extract_pdf_url(item: dict) -> str:
 
 
 def _extract_comment(item: dict) -> str:
-    """Extract a comment/note string, safely converting to str."""
+    """Extract a comment/note string; only return plain strings, skip dicts/lists."""
     for field in ("update-to", "relation"):
         val = item.get(field)
         if val is None:
             continue
         if isinstance(val, str):
             return val.strip()
-        try:
-            return str(val)
-        except Exception:
-            pass
+        # Avoid returning repr of dicts/lists which produces noisy garbage strings
     return ""
 
 
@@ -330,10 +341,10 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
             response_data = resp.json()
             break
 
-        except requests.exceptions.Timeout:
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
             if attempt < _MAX_RETRIES:
                 wait = 2 ** attempt
-                logger.warning("Request timed out – retrying in %.0fs", wait)
+                logger.warning("Request error (%s) – retrying in %.0fs", type(exc).__name__, wait)
                 time.sleep(wait)
                 continue
             raise
@@ -345,9 +356,7 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
 
     # Save raw API response
     raw_path: Path = settings.paths.raw_api_response
-    raw_path.parent.mkdir(parents=True, exist_ok=True)
-    with raw_path.open("w", encoding="utf-8") as f:
-        json.dump(response_data, f, ensure_ascii=False, indent=2)
+    write_json(raw_path, response_data)
     logger.info("Saved raw API response → %s", raw_path)
 
     # Parse records
@@ -356,10 +365,7 @@ def fetch_source_records(settings: Settings) -> list[PaperRecord]:
 
     # Save parsed records
     records_path: Path = settings.paths.raw_records_json
-    records_path.parent.mkdir(parents=True, exist_ok=True)
-    records_as_dicts = [dataclasses.asdict(r) for r in records]
-    with records_path.open("w", encoding="utf-8") as f:
-        json.dump(records_as_dicts, f, ensure_ascii=False, indent=2)
+    write_json(records_path, [dataclasses.asdict(r) for r in records])
     logger.info("Saved parsed records → %s", records_path)
 
     return records
