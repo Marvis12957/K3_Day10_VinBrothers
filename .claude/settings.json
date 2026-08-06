@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python -c \"import pandas; print\\(pandas.__version__\\)\")",
+      "Bash(.venv/bin/python /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/test_corruption.py /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/corruption_log.json)",
+      "Bash(.venv/bin/python -c \"from ingestion import corrupt_clean_dataframe; print\\('OK:', corrupt_clean_dataframe.__module__\\)\")",
+      "Bash(git ls-remote *)",
+      "Bash(git push *)",
+      "Bash(PYTHONPATH=/private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/integration/src /Users/Apple/Project/Lab/K3_Day10_2A202602030_TranHieu/.venv/bin/python /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/integration_test.py)",
+      "Bash(PYTHONPATH=/private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/integration/src /Users/Apple/Project/Lab/K3_Day10_2A202602030_TranHieu/.venv/bin/python /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/impact_analysis.py)",
+      "Bash(PYTHONPATH=/private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/integration/src /Users/Apple/Project/Lab/K3_Day10_2A202602030_TranHieu/.venv/bin/python -c ' *)",
+      "Bash(sed -i '' 's/len\\(log\\\\[\"operations\"\\\\]\\) == 7/len\\(log[\"operations\"]\\) == 8/; s/log co du 7 operation/log co du 8 operation/' /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/test_corruption.py /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/integration_test.py)",
+      "Bash(cp src/ingestion/corruption.py /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/integration/src/ingestion/corruption.py)",
+      "Bash(git worktree *)",
+      "Bash(.venv/bin/python /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/probe.py /private/tmp/claude-501/-Users-Apple-Project-Lab-K3-Day10-2A202602030-TranHieu/73b6b2f0-a30e-4e67-b805-c540f121fc2f/scratchpad/probe_log.json)",
+      "Bash(git fetch *)",
+      "Bash(xargs -I{} echo \" so dong 'import json': {}\")"
+    ]
+  }
+}
