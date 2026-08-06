@@ -12,8 +12,8 @@
 ```mermaid
 flowchart TD
     A["CROSSREF REST API<br/>api.crossref.org/works"] -->|"fetch · retry/backoff 429/503"| B["crossref.py<br/>parse JATS → PaperRecord (11 fields)"]
-    B --> R1["crossref_response.json<br/>(raw gốc = NGUỒN REPAIR pha 2)"]
-    B --> R2["crossref_records.json<br/>(24 PaperRecord)"]
+    B --> R1["crossref_response.json<br/>(payload gốc — parse lại được<br/>mà không gọi lại API)"]
+    B --> R2["crossref_records.json<br/>(24 PaperRecord)<br/>= NGUỒN REPAIR pha 2"]
     R2 --> C["cleaning.py<br/>normalize · age_days · text_for_embedding<br/>→ 10 cột contract"]
     C --> D["data/clean/papers_clean.{csv,json}<br/>(paper_id unique)"]
     D --> E["testset.py<br/>4 loại câu hỏi<br/>test_set.json (ĐÓNG BĂNG)"]
@@ -27,7 +27,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["papers_clean.csv (baseline)"] --> B["corruption.py<br/>8 kịch bản · seed 42 · có log"]
+    A["papers_clean.csv (baseline)"] --> B["corruption.py<br/>7 kịch bản · seed 42 · có log"]
     B --> C1["papers_clean_corrupted.{csv,json}"]
     B --> C2["data/results/corruption_log.json"]
     C1 --> D["index papers-corrupted<br/>evaluate trên CÙNG test set đã đóng băng"]
