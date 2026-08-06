@@ -13,7 +13,7 @@
 
 | STT | Họ và tên | MSSV | GitHub | Vai trò chính | Module/deliverable sở hữu |
 | --: | --- | --- | --- | --- | --- |
-| 1 | Hoàng Dũng | [MSSV] | [handle] | Source Ingestion Owner | `src/ingestion/crossref.py` → `data/raw/crossref_response.json`, `data/raw/crossref_records.json` |
+| 1 | Hoàng Mạnh Dũng | 2A202601213 | — | Source Ingestion Owner | `src/ingestion/crossref.py` → `data/raw/crossref_response.json`, `data/raw/crossref_records.json` |
 | 2 | Trần Trung Hiếu | 2A202602002 | trunghieunef | Data Model & Eval Set Owner | `src/ingestion/cleaning.py`, `src/evaluation/testset.py` → `data/clean/papers_clean.{csv,json}`, `data/eval/test_set.json` |
 | 3 | Phạm Quốc Tuấn | 2A202601983 | phamquoctuan2308 | Data Observability Owner | `src/observability/quality.py`, `src/observability/reporting.py` → `data/quality/`, `data/reports/` |
 | 4 | Trần Văn Hiếu | 2A202602030 | Marvis | Corruption & Repair Owner | `src/ingestion/corruption.py` → `data/clean/papers_clean_corrupted.*`, `data/results/corruption_log.json` |
@@ -52,7 +52,7 @@ Crossref API
 
 | Khối             | Input          | Xử lý chính             | Output/artifact          | Owner          |
 | ----------------- | -------------- | -------------------------- | ------------------------ | -------------- |
-| Ingestion         | Crossref REST API `/works` | Fetch có retry/backoff cho 429/503, parse payload → `PaperRecord` | `data/raw/crossref_response.json`, `data/raw/crossref_records.json` | Hoàng Dũng |
+| Ingestion         | Crossref REST API `/works` | Fetch có retry/backoff cho 429/503, parse payload → `PaperRecord` | `data/raw/crossref_response.json`, `data/raw/crossref_records.json` | Hoàng Mạnh Dũng |
 | Cleaning          | `data/raw/crossref_records.json` | Normalize text, parse date, tính `age_days`, dựng `text_for_embedding`, dedup | `data/clean/papers_clean.{csv,json}` | Trần Trung Hiếu |
 | Embedding/index   | `data/clean/papers_clean.csv` | MiniLM-L6-v2 (384 chiều) + ChromaDB cosine, 1 collection/trạng thái | `data/embeddings/papers_embeddings*.json`, `data/chroma/` | Code có sẵn (`retrieval/index.py`) — TV5 vận hành |
 | Evaluation        | `data/clean/papers_clean.csv` + index | Sinh test set 4 loại câu hỏi (freeze 1 lần), chấm hit-rate/token-F1/LLM-judge | `data/eval/test_set.json`, `data/results/*_metrics.json`, `data/results/*_answers.json` | Trần Trung Hiếu (test set), TV5 (chạy eval) |
