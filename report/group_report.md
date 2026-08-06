@@ -6,20 +6,20 @@
 
 | Thông tin         | Nội dung                  |
 | ------------------ | -------------------------- |
-| Khóa/Lớp         | [K3 hoặc K4]              |
+| Khóa/Lớp         | K3                         |
 | Tên nhóm         | [Tên hoặc mã nhóm]     |
-| Repository         | [Đường dẫn repository] |
-| Ngày hoàn thành | [YYYY-MM-DD]               |
+| Repository         | K3_Day10_Data-Pipeline-Data-Observability |
+| Ngày hoàn thành | 2026-08-06                 |
 
 ### Thành viên và phân công
 
-| STT | Họ và tên | MSSV | Vai trò chính | Module/deliverable sở hữu |
-| --: | --- | --- | --- | --- |
-| 1 | [Họ tên] | [MSSV] | [Vai trò] | [File, hàm hoặc artifact] |
-| 2 | [Họ tên] | [MSSV] | [Vai trò] | [File, hàm hoặc artifact] |
-| 3 | [Họ tên] | [MSSV] | [Vai trò] | [File, hàm hoặc artifact] |
-| 4 | [Nếu có] | [MSSV] | [Vai trò] | [File, hàm hoặc artifact] |
-| 5 | [Nếu có] | [MSSV] | [Vai trò] | [File, hàm hoặc artifact] |
+| STT | Họ và tên | MSSV | GitHub | Vai trò chính | Module/deliverable sở hữu |
+| --: | --- | --- | --- | --- | --- |
+| 1 | Hoàng Dũng | [MSSV] | [handle] | Source Ingestion Owner | `src/ingestion/crossref.py` → `data/raw/crossref_response.json`, `data/raw/crossref_records.json` |
+| 2 | Trần Trung Hiếu | 2A202602002 | trunghieunef | Data Model & Eval Set Owner | `src/ingestion/cleaning.py`, `src/evaluation/testset.py` → `data/clean/papers_clean.{csv,json}`, `data/eval/test_set.json` |
+| 3 | Phạm Quốc Tuấn | 2A202601983 | phamquoctuan2308 | Data Observability Owner | `src/observability/quality.py`, `src/observability/reporting.py` → `data/quality/`, `data/reports/` |
+| 4 | Trần Văn Hiếu | 2A202602030 | Marvis | Corruption & Repair Owner | `src/ingestion/corruption.py` → `data/clean/papers_clean_corrupted.*`, `data/results/corruption_log.json` |
+| 5 | Trương Công Thái Đức | 2A202601581 | [handle] | Integration & Comparison Owner (nhóm trưởng) | `src/pipelines/phase1.py`, `src/pipelines/corruption_flow.py` → `data/results/*_metrics.json`, `data/reports/corruption_report.md` |
 
 ## 2. Tóm tắt kết quả
 
@@ -58,13 +58,13 @@ Crossref API
 
 | Khối             | Input          | Xử lý chính             | Output/artifact          | Owner          |
 | ----------------- | -------------- | -------------------------- | ------------------------ | -------------- |
-| Ingestion         | [Nguồn/input] | [Fetch, retry, parse...]   | [Đường dẫn artifact] | [Thành viên] |
-| Cleaning          | [Input]        | [Các quy tắc chính]     | [Đường dẫn artifact] | [Thành viên] |
-| Embedding/index   | [Input]        | [Model/index config]       | [Đường dẫn artifact] | [Thành viên] |
-| Evaluation        | [Input]        | [Test set và metrics]     | [Đường dẫn artifact] | [Thành viên] |
-| Observability     | [Input]        | [Quality/freshness checks] | [Đường dẫn artifact] | [Thành viên] |
-| Corruption/repair | [Input]        | [Corruption và repair]    | [Đường dẫn artifact] | [Thành viên] |
-| Orchestration     | [Input]        | [Thứ tự chạy]           | [Reports/metrics]        | [Thành viên] |
+| Ingestion         | Crossref REST API `/works` | Fetch có retry/backoff cho 429/503, parse payload → `PaperRecord` | `data/raw/crossref_response.json`, `data/raw/crossref_records.json` | Hoàng Dũng |
+| Cleaning          | `data/raw/crossref_records.json` | Normalize text, parse date, tính `age_days`, dựng `text_for_embedding`, dedup | `data/clean/papers_clean.{csv,json}` | Trần Trung Hiếu |
+| Embedding/index   | `data/clean/papers_clean.csv` | MiniLM-L6-v2 + ChromaDB cosine, 1 collection/trạng thái | `data/embeddings/papers_embeddings*.json`, `data/chroma/` | Code có sẵn (`retrieval/index.py`) — TV5 vận hành |
+| Evaluation        | `data/clean/papers_clean.csv` + index | Sinh test set 4 loại câu hỏi (freeze 1 lần), chấm hit-rate/token-F1/LLM-judge | `data/eval/test_set.json`, `data/results/*_metrics.json`, `data/results/*_answers.json` | Trần Trung Hiếu (test set), TV5 (chạy eval) |
+| Observability     | cleaned/corrupted/repaired dataframe | Quality checks + freshness vs ngưỡng 180 ngày | `data/quality/`, `data/reports/phase1_report.md` | Phạm Quốc Tuấn |
+| Corruption/repair | `data/clean/papers_clean.csv`, `data/raw/crossref_records.json` | 6 kiểu corrupt có log; repair = rebuild từ raw snapshot | `data/clean/papers_clean_corrupted.*`, `data/clean/papers_clean_repaired.*`, `data/results/corruption_log.json` | Trần Văn Hiếu |
+| Orchestration     | Toàn bộ module trên | Thứ tự chạy phase1 → corruption flow, giữ nguyên test set qua 3 trạng thái | `data/reports/corruption_report.md`, bảng so sánh | Trương Công Thái Đức |
 
 ## 4. Cách tái hiện kết quả
 

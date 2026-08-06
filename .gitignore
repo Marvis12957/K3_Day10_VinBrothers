@@ -6,3 +6,7 @@ src/*.egg-info/
 lab/
 **/__pycache__/
 CLAUDE.md
+
+# ChromaDB persistent store: binary, dung lai duoc tu embeddings manifest
+data/chroma/*
+!data/chroma/.gitkeep
