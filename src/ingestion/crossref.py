@@ -379,8 +379,7 @@ def load_raw_records(path: Path) -> list[PaperRecord]:
             "Run fetch_source_records() first to generate it."
         )
 
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    data = read_json(path)
 
     if not isinstance(data, list):
         raise ValueError(f"Expected a JSON list in {path}, got {type(data).__name__}.")
