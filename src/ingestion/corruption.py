@@ -24,10 +24,15 @@ BLANK_SUMMARY_FRACTION = 0.12
 NOISE_FRACTION = 0.12
 TRUNCATE_TITLE_FRACTION = 0.12
 STALE_FRACTION = 0.16
+SWAP_AUTHORS_FRACTION = 0.14
 DUPLICATE_FRACTION = 0.08
 
 TRUNCATED_TITLE_CHARS = 12
 NOISE_TEXT = "lorem ipsum qwerty zzz 12345 %%% asdf gibberish token soup xxxxx"
+
+# Các cột được cleaning.py ghép vào text_for_embedding. Sửa bất kỳ cột nào trong
+# đây đều phải dựng lại text_for_embedding, nếu không embedding vẫn giữ giá trị cũ.
+FIELDS_INSIDE_EMBEDDING_TEXT = ["title", "summary", "authors_joined", "categories_joined"]
 
 
 def _row_budget(total: int, fraction: float) -> int:
@@ -53,6 +58,28 @@ def _paper_ids(df: pd.DataFrame, indexes: list[Any]) -> list[str]:
     return [str(df.loc[index, "paper_id"]) for index in indexes]
 
 
+def _operation(
+    kind: str,
+    description: str,
+    paper_ids: list[str],
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Tạo một mục cho corruption log.
+
+    `paper_ids` chỉ được chứa dòng THẬT SỰ bị đổi. Vì `rows_affected` được suy ra
+    từ chính danh sách đó, hai con số không thể lệch nhau — nếu ghi tay riêng rẽ,
+    các bước có thể bỏ qua dòng (published không parse được, tác giả trùng nhau)
+    sẽ báo cáo nhiều dòng hơn thực tế và làm sai lệch phân tích ở báo cáo.
+    """
+    return {
+        "type": kind,
+        "description": description,
+        "rows_affected": len(paper_ids),
+        "paper_ids": paper_ids,
+        "details": details or {},
+    }
+
+
 def _age_days(published: Any, run_date: pd.Timestamp) -> Any:
     """Tính lại age_days từ published. Trả về pd.NA khi không parse được."""
     parsed = pd.to_datetime(published, errors="coerce", utc=True)
@@ -63,12 +90,13 @@ def _age_days(published: Any, run_date: pd.Timestamp) -> Any:
 
 def _rebuild_text_for_embedding(
     original: str,
-    old_title: str,
-    new_title: str,
-    old_summary: str,
-    new_summary: str,
+    changes: list[tuple[str, str]],
+    fallback_title: str,
+    fallback_summary: str,
 ) -> str:
-    """Dựng lại text_for_embedding sau khi title/summary bị sửa.
+    """Dựng lại text_for_embedding sau khi các cột nguồn bị sửa.
+
+    `changes` là danh sách cặp (giá trị cũ, giá trị mới) của những cột đã đổi.
 
     Thay chuỗi cũ bằng chuỗi mới ngay trên text gốc thay vì ráp lại theo template
     riêng: cách này giữ nguyên định dạng mà cleaning.py đã tạo ra, nên khác biệt
@@ -78,26 +106,28 @@ def _rebuild_text_for_embedding(
     text = original if isinstance(original, str) else ""
     replaced = False
 
-    if old_title and old_title != new_title and old_title in text:
-        text = text.replace(old_title, new_title)
-        replaced = True
-    if old_summary and old_summary != new_summary and old_summary in text:
-        text = text.replace(old_summary, new_summary)
-        replaced = True
+    for old_value, new_value in changes:
+        if old_value and old_value != new_value and old_value in text:
+            text = text.replace(old_value, new_value)
+            replaced = True
 
     if not replaced:
-        text = f"{new_title}\n\n{new_summary}".strip()
+        # Đường cùng: cleaning.py đổi cách ghép text nên không tìm thấy chuỗi cũ.
+        text = f"{fallback_title} {fallback_summary}".strip()
 
     # text_for_embedding rỗng sẽ làm ChromaDB nhận document trống; giữ lại ít nhất title.
-    return text.strip() or new_title.strip() or "corrupted-record"
+    return text.strip() or fallback_title.strip() or "corrupted-record"
 
 
 def corrupt_clean_dataframe(df: pd.DataFrame, output_log_path) -> pd.DataFrame:
     """Mô phỏng nhiều dạng data corruption trên cleaned dataframe.
 
-    Sau khi sửa published thì age_days được tính lại, và sau khi sửa title/summary
-    thì text_for_embedding được dựng lại — nếu không, freshness check vẫn báo "fresh"
-    và embedding vẫn sạch, corruption sẽ không tạo ra tác động nào đo được.
+    Hai ràng buộc bắt buộc, nếu bỏ qua thì corruption không tạo ra tác động đo được:
+
+    - Sửa published thì phải tính lại age_days, vì freshness check đọc age_days
+      chứ không đọc published — nếu không, dữ liệu đã cũ vẫn bị báo là "fresh".
+    - Sửa bất kỳ cột nào trong FIELDS_INSIDE_EMBEDDING_TEXT thì phải dựng lại
+      text_for_embedding, vì ChromaDB nhúng cột đó chứ không nhúng cột nguồn.
 
     Trả về dataframe đã corrupt và ghi corruption log vào `output_log_path`.
     """
@@ -120,9 +150,11 @@ def corrupt_clean_dataframe(df: pd.DataFrame, output_log_path) -> pd.DataFrame:
         )
         return corrupted
 
-    # Chụp lại title/summary gốc để biết dòng nào thật sự bị đổi nội dung ở bước rebuild.
-    original_titles = corrupted["title"].astype(str).copy()
-    original_summaries = corrupted["summary"].astype(str).copy()
+    # Chụp lại các cột nguồn của text_for_embedding để biết dòng nào thật sự bị
+    # đổi nội dung ở bước rebuild.
+    originals = {
+        field: corrupted[field].astype(str).copy() for field in FIELDS_INSIDE_EMBEDDING_TEXT
+    }
 
     # --- 1. Xóa một số record mới nhất --------------------------------------
     # Ảnh hưởng trực tiếp đến freshness và làm mất document khỏi corpus.
@@ -134,13 +166,12 @@ def corrupt_clean_dataframe(df: pd.DataFrame, output_log_path) -> pd.DataFrame:
     corrupted = corrupted.drop(index=latest_indexes)
 
     operations.append(
-        {
-            "type": "drop_latest_records",
-            "description": "Xóa các record mới nhất khỏi corpus.",
-            "rows_affected": len(latest_indexes),
-            "paper_ids": dropped_ids,
-            "details": {"dropped_published_dates": dropped_dates},
-        }
+        _operation(
+            "drop_latest_records",
+            "Xóa các record mới nhất khỏi corpus.",
+            dropped_ids,
+            {"dropped_published_dates": dropped_dates},
+        )
     )
 
     # Các loại lỗi còn lại chia trên tập dòng không chồng lấn để impact tách bạch.
@@ -155,13 +186,11 @@ def corrupt_clean_dataframe(df: pd.DataFrame, output_log_path) -> pd.DataFrame:
     for index in blank_indexes:
         corrupted.loc[index, "summary"] = ""
     operations.append(
-        {
-            "type": "blank_summary",
-            "description": "Xóa trắng summary — agent mất nội dung để trả lời.",
-            "rows_affected": len(blank_indexes),
-            "paper_ids": _paper_ids(corrupted, blank_indexes),
-            "details": {},
-        }
+        _operation(
+            "blank_summary",
+            "Xóa trắng summary — agent mất nội dung để trả lời.",
+            _paper_ids(corrupted, blank_indexes),
+        )
     )
 
     # --- 3. Chèn nhiễu vào summary ------------------------------------------
@@ -170,13 +199,12 @@ def corrupt_clean_dataframe(df: pd.DataFrame, output_log_path) -> pd.DataFrame:
         current = str(corrupted.loc[index, "summary"])
         corrupted.loc[index, "summary"] = f"{current} {NOISE_TEXT}".strip()
     operations.append(
-        {
-            "type": "inject_noise",
-            "description": "Chèn text rác vào summary — làm nhiễu embedding.",
-            "rows_affected": len(noise_indexes),
-            "paper_ids": _paper_ids(corrupted, noise_indexes),
-            "details": {"noise_text": NOISE_TEXT},
-        }
+        _operation(
+            "inject_noise",
+            "Chèn text rác vào summary — làm nhiễu embedding.",
+            _paper_ids(corrupted, noise_indexes),
+            {"noise_text": NOISE_TEXT},
+        )
     )
 
     # --- 4. Cắt cụt title ----------------------------------------------------
@@ -189,88 +217,113 @@ def corrupt_clean_dataframe(df: pd.DataFrame, output_log_path) -> pd.DataFrame:
         corrupted.loc[index, "title"] = new_title
         truncated_details.append({"before": current, "after": new_title})
     operations.append(
-        {
-            "type": "truncate_title",
-            "description": f"Cắt title còn {TRUNCATED_TITLE_CHARS} ký tự — hỏng exact lookup.",
-            "rows_affected": len(truncate_indexes),
-            "paper_ids": _paper_ids(corrupted, truncate_indexes),
-            "details": {"examples": truncated_details[:3]},
-        }
+        _operation(
+            "truncate_title",
+            f"Cắt title còn {TRUNCATED_TITLE_CHARS} ký tự — hỏng exact lookup.",
+            _paper_ids(corrupted, truncate_indexes),
+            {"examples": truncated_details[:3]},
+        )
     )
 
     # --- 5. Làm cũ published date -------------------------------------------
     stale_indexes = _take(pool, _row_budget(remaining, STALE_FRACTION))
+    stale_applied: list[Any] = []
     stale_details: list[dict[str, str]] = []
     for index in stale_indexes:
         parsed = pd.to_datetime(corrupted.loc[index, "published"], errors="coerce", utc=True)
         if pd.isna(parsed):
+            # published không parse được thì bỏ qua, và không ghi vào log.
             continue
         stale_date = parsed - pd.Timedelta(days=STALE_SHIFT_DAYS)
         new_published = stale_date.date().isoformat()
         corrupted.loc[index, "published"] = new_published
         # Bắt buộc: không tính lại age_days thì freshness check vẫn báo "fresh".
         corrupted.loc[index, "age_days"] = _age_days(new_published, run_date)
+        stale_applied.append(index)
         stale_details.append({"before": str(parsed.date()), "after": new_published})
     operations.append(
-        {
-            "type": "stale_published_date",
-            "description": f"Đẩy published lùi {STALE_SHIFT_DAYS} ngày và tính lại age_days.",
-            "rows_affected": len(stale_details),
-            "paper_ids": _paper_ids(corrupted, stale_indexes),
-            "details": {"shift_days": STALE_SHIFT_DAYS, "examples": stale_details[:3]},
-        }
+        _operation(
+            "stale_published_date",
+            f"Đẩy published lùi {STALE_SHIFT_DAYS} ngày và tính lại age_days.",
+            _paper_ids(corrupted, stale_applied),
+            {"shift_days": STALE_SHIFT_DAYS, "examples": stale_details[:3]},
+        )
     )
 
-    # --- 6. Dựng lại text_for_embedding cho dòng đã đổi nội dung ------------
+    # --- 6. Hoán đổi tác giả giữa các paper ---------------------------------
+    # Mô phỏng lỗi join sai khóa trong ETL: dữ liệu trông vẫn hợp lệ (không null,
+    # không rỗng) nên data quality check cơ bản không bắt được, nhưng agent trả
+    # lời sai tác giả. Đây là loại lỗi "thầm lặng" — và là kịch bản duy nhất
+    # chạm tới authors_joined, cột mà các loại corruption khác không đụng tới.
+    swap_indexes = _take(pool, _row_budget(remaining, SWAP_AUTHORS_FRACTION))
+    swap_applied: list[Any] = []
+    swap_details: list[dict[str, str]] = []
+    if len(swap_indexes) >= 2:
+        # Xoay vòng thay vì ghép cặp: mọi dòng được chọn đều nhận tác giả của
+        # dòng khác, kể cả khi số dòng lẻ.
+        current_authors = [str(corrupted.loc[index, "authors_joined"]) for index in swap_indexes]
+        rotated = current_authors[1:] + current_authors[:1]
+        for index, old_authors, new_authors in zip(swap_indexes, current_authors, rotated):
+            if old_authors == new_authors:
+                # Hai paper vốn cùng tác giả: hoán đổi không tạo ra thay đổi nào.
+                continue
+            corrupted.loc[index, "authors_joined"] = new_authors
+            swap_applied.append(index)
+            swap_details.append({"before": old_authors, "after": new_authors})
+    operations.append(
+        _operation(
+            "swap_authors",
+            "Gán nhầm authors_joined sang paper khác — lỗi join sai khóa.",
+            _paper_ids(corrupted, swap_applied),
+            {"examples": swap_details[:3]},
+        )
+    )
+
+    # --- 7. Dựng lại text_for_embedding cho dòng đã đổi nội dung ------------
     # Chỉ rebuild dòng thật sự bị sửa: dòng sạch giữ nguyên text gốc nên khác biệt
     # embedding đo được chỉ đến từ corruption.
     rebuilt_indexes: list[Any] = []
-    for index in corrupted.index:
-        old_title = original_titles.get(index, "")
-        old_summary = original_summaries.get(index, "")
-        new_title = str(corrupted.loc[index, "title"])
-        new_summary = str(corrupted.loc[index, "summary"])
-        if old_title == new_title and old_summary == new_summary:
+    for index, row in corrupted.iterrows():
+        changes = [
+            (originals[field].get(index, ""), str(row[field]))
+            for field in FIELDS_INSIDE_EMBEDDING_TEXT
+            if originals[field].get(index, "") != str(row[field])
+        ]
+        if not changes:
             continue
         corrupted.loc[index, "text_for_embedding"] = _rebuild_text_for_embedding(
-            original=str(corrupted.loc[index, "text_for_embedding"]),
-            old_title=old_title,
-            new_title=new_title,
-            old_summary=old_summary,
-            new_summary=new_summary,
+            original=str(row["text_for_embedding"]),
+            changes=changes,
+            fallback_title=str(row["title"]),
+            fallback_summary=str(row["summary"]),
         )
         rebuilt_indexes.append(index)
 
     operations.append(
-        {
-            "type": "rebuild_text_for_embedding",
-            "description": "Dựng lại text_for_embedding cho dòng đã đổi title/summary.",
-            "rows_affected": len(rebuilt_indexes),
-            "paper_ids": _paper_ids(corrupted, rebuilt_indexes),
-            "details": {},
-        }
+        _operation(
+            "rebuild_text_for_embedding",
+            "Dựng lại text_for_embedding cho dòng đã đổi cột nguồn.",
+            _paper_ids(corrupted, rebuilt_indexes),
+            {"fields_watched": FIELDS_INSIDE_EMBEDDING_TEXT},
+        )
     )
 
-    # --- 7. Nhân bản dòng ----------------------------------------------------
+    # --- 8. Nhân bản dòng ----------------------------------------------------
     # Làm cuối cùng để bản sao mang đúng giá trị đã corrupt; phá ràng buộc
     # paper_id unique trong data quality checks.
     duplicate_indexes = _take(pool, _row_budget(remaining, DUPLICATE_FRACTION))
+    duplicated_ids = _paper_ids(corrupted, duplicate_indexes)
     if duplicate_indexes:
-        duplicated_ids = _paper_ids(corrupted, duplicate_indexes)
         corrupted = pd.concat(
             [corrupted, corrupted.loc[duplicate_indexes]],
             ignore_index=True,
         )
-    else:
-        duplicated_ids = []
     operations.append(
-        {
-            "type": "duplicate_rows",
-            "description": "Nhân bản dòng — phá ràng buộc paper_id unique.",
-            "rows_affected": len(duplicate_indexes),
-            "paper_ids": duplicated_ids,
-            "details": {},
-        }
+        _operation(
+            "duplicate_rows",
+            "Nhân bản dòng — phá ràng buộc paper_id unique.",
+            duplicated_ids,
+        )
     )
 
     corrupted = corrupted.reset_index(drop=True)
