@@ -1,0 +1,166 @@
+{
+  "generated_at": "2026-08-06T04:31:40.471852+00:00",
+  "random_seed": 42,
+  "rows_before": 24,
+  "rows_after": 23,
+  "distinct_paper_ids_affected": 20,
+  "operations": [
+    {
+      "type": "drop_latest_records",
+      "description": "X\u00f3a c\u00e1c record m\u1edbi nh\u1ea5t kh\u1ecfi corpus.",
+      "rows_affected": 3,
+      "paper_ids": [
+        "10.2118/234689-pa",
+        "10.1007/s10278-026-02086-9",
+        "10.21203/rs.3.rs-10178277/v1"
+      ],
+      "details": {
+        "dropped_published_dates": [
+          "2026-08-01",
+          "2026-07-13",
+          "2026-07-10"
+        ]
+      }
+    },
+    {
+      "type": "blank_summary",
+      "description": "X\u00f3a tr\u1eafng summary \u2014 agent m\u1ea5t n\u1ed9i dung \u0111\u1ec3 tr\u1ea3 l\u1eddi.",
+      "rows_affected": 3,
+      "paper_ids": [
+        "10.35314/3y9hy151",
+        "10.47576/2949-1894.2026.7.7.023",
+        "10.1093/sleep/zsag091.0346"
+      ],
+      "details": {}
+    },
+    {
+      "type": "inject_noise",
+      "description": "Ch\u00e8n text r\u00e1c v\u00e0o summary \u2014 l\u00e0m nhi\u1ec5u embedding.",
+      "rows_affected": 3,
+      "paper_ids": [
+        "10.1111/exsy.70341",
+        "10.54254/2753-8818/2026.dl34055",
+        "10.32473/flairs.39.1.141782"
+      ],
+      "details": {
+        "noise_text": "lorem ipsum qwerty zzz 12345 %%% asdf gibberish token soup xxxxx"
+      }
+    },
+    {
+      "type": "truncate_title",
+      "description": "C\u1eaft title c\u00f2n 12 k\u00fd t\u1ef1 \u2014 h\u1ecfng exact lookup.",
+      "rows_affected": 3,
+      "paper_ids": [
+        "10.20944/preprints202604.0339.v1",
+        "10.3390/app16052244",
+        "10.21203/rs.3.rs-10012178/v1"
+      ],
+      "details": {
+        "examples": [
+          {
+            "before": "Retrieval-Augmented Large Language Model Agents for Automated Scientific Literature Review Generation",
+            "after": "Retrieval-Au"
+          },
+          {
+            "before": "Hybrid Retrieval-Augmented Generation: Semantic and Structural Integration for Large Language Model Reasoning",
+            "after": "Hybrid Retri"
+          },
+          {
+            "before": "Retrieval-Augmented Generation (RAG), Generative AI, and Agentic AI Governance: An Integrated Enterprise Governance Prioritization Architecture",
+            "after": "Retrieval-Au"
+          }
+        ]
+      }
+    },
+    {
+      "type": "stale_published_date",
+      "description": "\u0110\u1ea9y published l\u00f9i 400 ng\u00e0y v\u00e0 t\u00ednh l\u1ea1i age_days.",
+      "rows_affected": 3,
+      "paper_ids": [
+        "10.55041/isjem07213",
+        "10.36227/techrxiv.177272838.89432844/v1",
+        "10.22214/ijraset.2026.82233"
+      ],
+      "details": {
+        "shift_days": 400,
+        "examples": [
+          {
+            "before": "2026-05-06",
+            "after": "2025-04-01"
+          },
+          {
+            "before": "2026-03-05",
+            "after": "2025-01-29"
+          },
+          {
+            "before": "2026-05-31",
+            "after": "2025-04-26"
+          }
+        ]
+      }
+    },
+    {
+      "type": "swap_authors",
+      "description": "G\u00e1n nh\u1ea7m authors_joined sang paper kh\u00e1c \u2014 l\u1ed7i join sai kh\u00f3a.",
+      "rows_affected": 3,
+      "paper_ids": [
+        "10.3390/buildings16132637",
+        "10.21203/rs.3.rs-9770645/v1",
+        "10.21079/11681/50309"
+      ],
+      "details": {
+        "examples": [
+          {
+            "before": "Nawari O. Nawari, Oluwatoyin O. Lawal",
+            "after": "AMOS MBEKI NYAGAR"
+          },
+          {
+            "before": "AMOS MBEKI NYAGAR",
+            "after": "Janet L. Autrey, Lacey S. Duckworth, Ashly N. Horner, Thomas Sigler, Victoria D. Moore"
+          },
+          {
+            "before": "Janet L. Autrey, Lacey S. Duckworth, Ashly N. Horner, Thomas Sigler, Victoria D. Moore",
+            "after": "Nawari O. Nawari, Oluwatoyin O. Lawal"
+          }
+        ]
+      }
+    },
+    {
+      "type": "rebuild_text_for_embedding",
+      "description": "D\u1ef1ng l\u1ea1i text_for_embedding cho d\u00f2ng \u0111\u00e3 \u0111\u1ed5i c\u1ed9t ngu\u1ed3n.",
+      "rows_affected": 12,
+      "paper_ids": [
+        "10.3390/buildings16132637",
+        "10.21079/11681/50309",
+        "10.1111/exsy.70341",
+        "10.47576/2949-1894.2026.7.7.023",
+        "10.21203/rs.3.rs-10012178/v1",
+        "10.54254/2753-8818/2026.dl34055",
+        "10.21203/rs.3.rs-9770645/v1",
+        "10.32473/flairs.39.1.141782",
+        "10.1093/sleep/zsag091.0346",
+        "10.20944/preprints202604.0339.v1",
+        "10.3390/app16052244",
+        "10.35314/3y9hy151"
+      ],
+      "details": {
+        "fields_watched": [
+          "title",
+          "summary",
+          "authors_joined",
+          "categories_joined"
+        ]
+      }
+    },
+    {
+      "type": "duplicate_rows",
+      "description": "Nh\u00e2n b\u1ea3n d\u00f2ng \u2014 ph\u00e1 r\u00e0ng bu\u1ed9c paper_id unique.",
+      "rows_affected": 2,
+      "paper_ids": [
+        "10.70121/001c.158711",
+        "10.21203/rs.3.rs-9882260/v1"
+      ],
+      "details": {}
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-08-06T04:31:40.460338+00:00",
+  "corruption": {
+    "baseline_rows": 24,
+    "corrupted_rows": 23,
+    "removed_paper_ids": [
+      "10.1007/s10278-026-02086-9",
+      "10.2118/234689-pa",
+      "10.21203/rs.3.rs-10178277/v1"
+    ],
+    "blank_summary_rows": 3,
+    "duplicate_rows": 2
+  },
+  "repair_verification": {
+    "baseline_rows": 24,
+    "repaired_rows": 24,
+    "missing_after_repair": [],
+    "unexpected_after_repair": [],
+    "fully_restored": true
+  },
+  "metrics": {
+    "baseline": {
+      "retrieval_hit_rate": 1.0,
+      "mean_token_f1": 1.0,
+      "judge_accuracy": 1.0,
+      "mean_judge_score": 5
+    },
+    "corrupted": {
+      "retrieval_hit_rate": 0.75,
+      "mean_token_f1": 0.59,
+      "judge_accuracy": 0.625,
+      "mean_judge_score": 3.6875
+    },
+    "repaired": {
+      "retrieval_hit_rate": 1.0,
+      "mean_token_f1": 1.0,
+      "judge_accuracy": 1.0,
+      "mean_judge_score": 5
+    }
+  }
+}

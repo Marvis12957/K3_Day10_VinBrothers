@@ -1,0 +1,43 @@
+{
+  "report_name": "baseline",
+  "generated_at": "2026-08-06T04:30:51.996505+00:00",
+  "total_rows": 24,
+  "passed": true,
+  "checks": [
+    {
+      "name": "row_count",
+      "passed": true,
+      "detail": "24 row(s) in dataset."
+    },
+    {
+      "name": "required_columns_present",
+      "passed": true,
+      "detail": "All required columns present."
+    },
+    {
+      "name": "paper_id_not_null",
+      "passed": true,
+      "detail": "0 row(s) with null paper_id."
+    },
+    {
+      "name": "paper_id_unique",
+      "passed": true,
+      "detail": "0 duplicate paper_id value(s)."
+    },
+    {
+      "name": "title_not_null",
+      "passed": true,
+      "detail": "0 row(s) with empty/null title."
+    },
+    {
+      "name": "summary_length",
+      "passed": true,
+      "detail": "0 row(s) with summary shorter than 40 chars (avg length 1727.4 chars)."
+    },
+    {
+      "name": "freshness",
+      "passed": true,
+      "detail": "0/24 row(s) older than 180 days."
+    }
+  ]
+}

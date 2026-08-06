@@ -1,0 +1,9 @@
+{
+  "generated_at": "2026-08-06T04:32:12.235774+00:00",
+  "freshness_threshold_days": 180,
+  "latest_published": "2026-07-03",
+  "oldest_published": "2025-01-29",
+  "stale_rows": 3,
+  "total_rows": 23,
+  "is_fresh": false
+}
