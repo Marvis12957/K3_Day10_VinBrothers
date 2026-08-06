@@ -9,7 +9,7 @@
 | Khóa/Lớp         | K3                         |
 | Tên nhóm         | Nhóm 5 — Day 10 Data Pipeline |
 | Vai trò chính    | Integration & Comparison Owner (nhóm trưởng, review/merge code) |
-| Repository         | https://github.com/Marvis12957/K3_Day10_2A202602030_TranHieu |
+| Repository         | https://github.com/Marvis12957/K3_Day10_VinBrothers |
 | Ngày hoàn thành | 2026-08-06                 |
 
 ## 2. Vai trò và phạm vi công việc
